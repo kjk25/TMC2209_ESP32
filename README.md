@@ -1,4 +1,4 @@
-# TMC_2209_ESP32
+# TMC_2209_ESP32 and Micropython
 This is a libary to drive a stepper motor with a TMC2209 stepper driver and a LOLIN32 V1.0.0 ESP32 Board
 
 This is a clone off the great work from Chr157i4n, thank you for the time you spend !
