@@ -1,7 +1,11 @@
-# TMC_2209_Raspberry_Pi
-This is a libary to drive a stepper motor with a TMC2209 stepper driver and a Raspberry Pi
+# TMC_2209_ESP32
+This is a libary to drive a stepper motor with a TMC2209 stepper driver and a LOLIN32 V1.0.0 ESP32 Board
+
+This is a clone off the great work from Chr157i4n, thank you for the time you spend !
+https://github.com/Chr157i4n/TMC2209_Raspberry_Pi
 
 This code is still experimental, so use it on your own risk.
+i have not tested all functions, hope its a start for others.
 
 This libary is programmed in pure Python. The performance of Python is not good enough to drive the motor with high speed.
 So if you move the motor with high speed and this libary the motor will loose steps.
@@ -25,12 +29,6 @@ https://github.com/troxel/TMC_UART
 
 the Documentation of the TMC2209 can be found here:
 https://www.trinamic.com/fileadmin/assets/Products/ICs_Documents/TMC2209_Datasheet_rev1.06.pdf
-
-
-## Installation
-- clone this repo to your Raspberry Pi using "git clone https://github.com/Chr157i4n/TMC2209_Raspberry_Pi"
-- install the python module bitstring with "pip3 install bitstring"
-- enable the serial port in "raspi-config"
 
 
 ## Usage
@@ -57,9 +55,6 @@ a funtion will be called, if the driver detects a stall. the function stops the 
 The motor will be moved 10 revolutions. If the movement is unhindered finished, the script outputs "Movement finished successfully".
 If you block the motor with pliers or so, the the motor will stop and the script outputs "StallGuard!" and "Movement was not completed"
 
-
-
-For me this baudrates worked fine: 19200, 38400, 57600, 115200, 230400, 460800, 576000
 
 If the TMC2209 driver is connected to Vmotor, the internal voltage regulator will create the Vio for the chip.
 So you dont need to connect anything to the Vio pin of the driver.
