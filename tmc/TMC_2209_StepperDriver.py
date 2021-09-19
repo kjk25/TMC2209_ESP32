@@ -931,15 +931,15 @@ class TMC_2209:
         #print("TMC2209: _stepInterval: " + str(self._stepInterval))
         
         if (curtime - self._lastStepTime >= self._stepInterval):
-
-            if (self._direction == 1): # Clockwise
-                self._currentPos += 1
-            else: # Anticlockwise 
-                self._currentPos -= 1
-            self.makeAStep()
-            
-            self._lastStepTime = curtime # Caution: does not account for costs in step()
-            return True
+            if not self._stop:
+                if (self._direction == 1): # Clockwise
+                    self._currentPos += 1
+                else: # Anticlockwise 
+                    self._currentPos -= 1
+                self.makeAStep()
+                
+                self._lastStepTime = curtime # Caution: does not account for costs in step()
+                return True
         else:
             return False
 
