@@ -15,7 +15,7 @@ print("---")
 # initiate the TMC_2209 class
 # use your pins for pin_step, pin_dir, pin_en here
 #-----------------------------------------------------------------------
-tmc = TMC_2209(27, 14, 26)
+tmc = TMC_2209(18, 19, 0) # you can populate pin_en, but I just tied it to ground
 
 
 

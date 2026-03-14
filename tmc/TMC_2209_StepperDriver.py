@@ -31,6 +31,7 @@ class MovementAbsRel():
 class TMC_2209:
     
     tmc_uart = None
+    mtr_id = 0
     _pin_step = -1
     _pin_dir = -1
     _pin_en = -1
@@ -45,7 +46,7 @@ class TMC_2209:
     _msres = -1
     _stepsPerRevolution = 0
     
-    _loglevel = Loglevel.none
+    _loglevel = Loglevel.info
 
     _currentPos = 0                 # current position of stepper in steps
     _targetPos = 0                  # the target position in steps
@@ -74,25 +75,27 @@ class TMC_2209:
 #-----------------------------------------------------------------------
 # constructor
 #-----------------------------------------------------------------------
-    def __init__(self, pin_step, pin_dir, pin_en, baudrate=115200, serialport=2):
+    def __init__(self, pin_step, pin_dir, pin_en, mtr_id=0, baudrate=115200, serialport=2):
         
-        self.tmc_uart = TMC_UART(serialport, baudrate)
+        self.tmc_uart = TMC_UART(serialport, baudrate, mtr_id)
+        self.mtr_id = mtr_id
+        print("mtr_id ", mtr_id, " self.mtr_id ", self.mtr_id)
         self._pin_step = pin_step
         self._pin_dir = pin_dir
         self._pin_en = pin_en
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209: Init")
+            print("TMC2209",self.mtr_id,": Init")
         self.p_pin_step = GPIO(self._pin_step, GPIO.OUT)
         self.p_pin_dir = GPIO(self._pin_dir, GPIO.OUT)
         self.p_pin_en = GPIO(self._pin_en, GPIO.OUT)
         self.p_pin_dir(self._direction)
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209: GPIO Init finished")      
+            print("TMC2209",self.mtr_id,": GPIO Init finished")      
         self.readStepsPerRevolution()
         self.clearGSTAT()
         self.tmc_uart.flushSerialBuffer()
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209: Init finished")
+            print("TMC2209",self.mtr_id,": Init finished")
 
 
 #-----------------------------------------------------------------------
@@ -100,7 +103,7 @@ class TMC_2209:
 #-----------------------------------------------------------------------
     def __del__(self):
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209: Deinit")
+            print("TMC2209",self.mtr_id,": Deinit")
         self.setMotorEnabled(False)
         GPIO.cleanup() 
 
@@ -121,48 +124,48 @@ class TMC_2209:
 # read the register Adress "DRVSTATUS" and prints all current setting
 #-----------------------------------------------------------------------
     def readDRVSTATUS(self):
-        print("TMC2209: ---")
-        print("TMC2209: DRIVER STATUS:")
+        print("TMC2209",self.mtr_id,": ---")
+        print("TMC2209",self.mtr_id,": DRIVER STATUS:")
         drvstatus =self.tmc_uart.read_int(reg.DRVSTATUS)
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209:", bin(drvstatus))
+            print("TMC2209",self.mtr_id,":", bin(drvstatus))
         if(drvstatus & reg.stst):
-            print("TMC2209: Info: motor is standing still")
+            print("TMC2209",self.mtr_id,": Info: motor is standing still")
         else:
-            print("TMC2209: Info: motor is running")
+            print("TMC2209",self.mtr_id,": Info: motor is running")
 
         if(drvstatus & reg.stealth):
-            print("TMC2209: Info: motor is running on StealthChop")
+            print("TMC2209",self.mtr_id,": Info: motor is running on StealthChop")
         else:
-            print("TMC2209: Info: motor is running on SpreadCycle")
+            print("TMC2209",self.mtr_id,": Info: motor is running on SpreadCycle")
 
         cs_actual = drvstatus & reg.cs_actual
         cs_actual = cs_actual >> 16
-        print("TMC2209: CS actual: "+str(cs_actual))
+        print("TMC2209",self.mtr_id,": CS actual: "+str(cs_actual))
 
         if(drvstatus & reg.olb):
-            print("TMC2209: Warning: Open load detected on phase B")
+            print("TMC2209",self.mtr_id,": Warning: Open load detected on phase B")
         
         if(drvstatus & reg.ola):
-            print("TMC2209: Warning: Open load detected on phase A")
+            print("TMC2209",self.mtr_id,": Warning: Open load detected on phase A")
         
         if(drvstatus & reg.s2vsb):
-            print("TMC2209: Error: Short on low-side MOSFET detected on phase B. The driver becomes disabled")
+            print("TMC2209",self.mtr_id,": Error: Short on low-side MOSFET detected on phase B. The driver becomes disabled")
 
         if(drvstatus & reg.s2vsa):
-            print("TMC2209: Error: Short on low-side MOSFET detected on phase A. The driver becomes disabled")
+            print("TMC2209",self.mtr_id,": Error: Short on low-side MOSFET detected on phase A. The driver becomes disabled")
 
         if(drvstatus & reg.s2gb):
-            print("TMC2209: Error: Short to GND detected on phase B. The driver becomes disabled. ")
+            print("TMC2209",self.mtr_id,": Error: Short to GND detected on phase B. The driver becomes disabled. ")
         
         if(drvstatus & reg.s2ga):
-            print("TMC2209: Error: Short to GND detected on phase A. The driver becomes disabled. ")
+            print("TMC2209",self.mtr_id,": Error: Short to GND detected on phase A. The driver becomes disabled. ")
         
         if(drvstatus & reg.ot):
-            print("TMC2209: Error: Driver Overheating!")
+            print("TMC2209",self.mtr_id,": Error: Driver Overheating!")
         
         if(drvstatus & reg.otpw):
-            print("TMC2209: Warning: Driver Overheating Prewarning!")
+            print("TMC2209",self.mtr_id,": Warning: Driver Overheating Prewarning!")
         
         print("---")
         return drvstatus
@@ -171,63 +174,63 @@ class TMC_2209:
 # read the register Adress "GCONF" and prints all current setting
 #-----------------------------------------------------------------------
     def readGCONF(self):
-        print("TMC2209: ---")
-        print("TMC2209: GENERAL CONFIG")
+        print("TMC2209",self.mtr_id,": ---")
+        print("TMC2209",self.mtr_id,": GENERAL CONFIG")
         gconf = self.tmc_uart.read_int(reg.GCONF)
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209:", bin(gconf))
+            print("TMC2209",self.mtr_id,":", bin(gconf))
 
         if(gconf & reg.i_scale_analog):
-            print("TMC2209: Driver is using voltage supplied to VREF as current reference")
+            print("TMC2209",self.mtr_id,": Driver is using voltage supplied to VREF as current reference")
         else:
-            print("TMC2209: Driver is using internal reference derived from 5VOUT")
+            print("TMC2209",self.mtr_id,": Driver is using internal reference derived from 5VOUT")
         if(gconf & reg.internal_rsense):
-            print("TMC2209: Internal sense resistors. Use current supplied into VREF as reference.")
-            print("TMC2209: VREF pin internally is driven to GND in this mode.")
-            print("TMC2209: This will most likely destroy your driver!!!")
+            print("TMC2209",self.mtr_id,": Internal sense resistors. Use current supplied into VREF as reference.")
+            print("TMC2209",self.mtr_id,": VREF pin internally is driven to GND in this mode.")
+            print("TMC2209",self.mtr_id,": This will most likely destroy your driver!!!")
             raise SystemExit
         else:
-            print("TMC2209: Operation with external sense resistors")
+            print("TMC2209",self.mtr_id,": Operation with external sense resistors")
         if(gconf & reg.en_spreadcycle):
-            print("TMC2209: SpreadCycle mode enabled")
+            print("TMC2209",self.mtr_id,": SpreadCycle mode enabled")
         else:
-            print("TMC2209: StealthChop PWM mode enabled")
+            print("TMC2209",self.mtr_id,": StealthChop PWM mode enabled")
         if(gconf & reg.shaft):
-            print("TMC2209: Inverse motor direction")
+            print("TMC2209",self.mtr_id,": Inverse motor direction")
         else:
-            print("TMC2209: normal motor direction")
+            print("TMC2209",self.mtr_id,": normal motor direction")
         if(gconf & reg.index_otpw):
-            print("TMC2209: INDEX pin outputs overtemperature prewarning flag")
+            print("TMC2209",self.mtr_id,": INDEX pin outputs overtemperature prewarning flag")
         else:
-            print("TMC2209: INDEX shows the first microstep position of sequencer")
+            print("TMC2209",self.mtr_id,": INDEX shows the first microstep position of sequencer")
         if(gconf & reg.index_step):
-            print("TMC2209: INDEX output shows step pulses from internal pulse generator")
+            print("TMC2209",self.mtr_id,": INDEX output shows step pulses from internal pulse generator")
         else:
-            print("TMC2209: INDEX output as selected by index_otpw")
+            print("TMC2209",self.mtr_id,": INDEX output as selected by index_otpw")
         if(gconf & reg.mstep_reg_select):
-            print("TMC2209: Microstep resolution selected by MSTEP register")
+            print("TMC2209",self.mtr_id,": Microstep resolution selected by MSTEP register")
         else:
-            print("TMC2209: Microstep resolution selected by pins MS1, MS2")
+            print("TMC2209",self.mtr_id,": Microstep resolution selected by pins MS1, MS2")
         
-        print("TMC2209: ---")
+        print("TMC2209",self.mtr_id,": ---")
         return gconf
 
 #-----------------------------------------------------------------------
 # read the register Adress "GSTAT" and prints all current setting
 #-----------------------------------------------------------------------
     def readGSTAT(self):
-        print("TMC2209: ---")
-        print("TMC2209: GSTAT")
+        print("TMC2209",self.mtr_id,": ---")
+        print("TMC2209",self.mtr_id,": GSTAT")
         gstat = self.tmc_uart.read_int(reg.GSTAT)
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209:",bin(gstat))
+            print("TMC2209",self.mtr_id,":",bin(gstat))
         if(gstat & reg.reset):
-            print("TMC2209: The Driver has been reset since the last read access to GSTAT")
+            print("TMC2209",self.mtr_id,": The Driver has been reset since the last read access to GSTAT")
         if(gstat & reg.drv_err):
-            print("TMC2209: The driver has been shut down due to overtemperature or short circuit detection since the last read access")
+            print("TMC2209",self.mtr_id,": The driver has been shut down due to overtemperature or short circuit detection since the last read access")
         if(gstat & reg.uv_cp):
-            print("TMC2209: Undervoltage on the charge pump. The driver is disabled in this case")
-        print("TMC2209: ---")
+            print("TMC2209",self.mtr_id,": Undervoltage on the charge pump. The driver is disabled in this case")
+        print("TMC2209",self.mtr_id,": ---")
         return gstat
 
 #-----------------------------------------------------------------------
@@ -243,55 +246,55 @@ class TMC_2209:
 # read the register Adress "IOIN" and prints all current setting
 #-----------------------------------------------------------------------
     def readIOIN(self):
-        print("TMC2209: ---")
-        print("TMC2209: INPUTS")
+        print("TMC2209",self.mtr_id,": ---")
+        print("TMC2209",self.mtr_id,": INPUTS")
         ioin = self.tmc_uart.read_int(reg.IOIN)
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209:", bin(ioin))
+            print("TMC2209",self.mtr_id,":", bin(ioin))
         if(ioin & reg.io_spread):
-            print("TMC2209: spread is high")
+            print("TMC2209",self.mtr_id,": spread is high")
         else:
-            print("TMC2209: spread is low")
+            print("TMC2209",self.mtr_id,": spread is low")
 
         if(ioin & reg.io_dir):
-            print("TMC2209: dir is high")
+            print("TMC2209",self.mtr_id,": dir is high")
         else:
-            print("TMC2209: dir is low")
+            print("TMC2209",self.mtr_id,": dir is low")
 
         if(ioin & reg.io_step):
-            print("TMC2209: step is high")
+            print("TMC2209",self.mtr_id,": step is high")
         else:
-            print("TMC2209: step is low")
+            print("TMC2209",self.mtr_id,": step is low")
 
         if(ioin & reg.io_enn):
-            print("TMC2209: en is high")
+            print("TMC2209",self.mtr_id,": en is high")
         else:
-            print("TMC2209: en is low")
+            print("TMC2209",self.mtr_id,": en is low")
         
-        print("TMC2209: ---")
+        print("TMC2209",self.mtr_id,": ---")
         return ioin
 
 #-----------------------------------------------------------------------
 # read the register Adress "CHOPCONF" and prints all current setting
 #-----------------------------------------------------------------------
     def readCHOPCONF(self):
-        print("TMC2209: ---")
-        print("TMC2209: CHOPPER CONTROL")
+        print("TMC2209",self.mtr_id,": ---")
+        print("TMC2209",self.mtr_id,": CHOPPER CONTROL")
         chopconf = self.tmc_uart.read_int(reg.CHOPCONF)
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209:", bin(chopconf))
+            print("TMC2209",self.mtr_id,":", bin(chopconf))
         
-        print("TMC2209: native "+str(self.getMicroSteppingResolution())+" microstep setting")
+        print("TMC2209",self.mtr_id,": native "+str(self.getMicroSteppingResolution())+" microstep setting")
         
         if(chopconf & reg.intpol):
-            print("TMC2209: interpolation to 256 microsteps")
+            print("TMC2209",self.mtr_id,": interpolation to 256 microsteps")
         
         if(chopconf & reg.vsense):
-            print("TMC2209: 1: High sensitivity, low sense resistor voltage")
+            print("TMC2209",self.mtr_id,": 1: High sensitivity, low sense resistor voltage")
         else:
-            print("TMC2209: 0: Low sensitivity, high sense resistor voltage")
+            print("TMC2209",self.mtr_id,": 0: Low sensitivity, high sense resistor voltage")
 
-        print("TMC2209: ---")
+        print("TMC2209",self.mtr_id,": ---")
         return chopconf
 
 #-----------------------------------------------------------------------
@@ -303,7 +306,7 @@ class TMC_2209:
         else:
             self.p_pin_en.on()
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209: Motor output active: {}".format(en))   
+            print("TMC2209",self.mtr_id,": Motor output active: {}".format(en))   
 
 #-----------------------------------------------------------------------
 # homes the motor in the given direction using stallguard
@@ -315,11 +318,11 @@ class TMC_2209:
             self._sg_threshold = threshold
         
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209: ---")
-            print("TMC2209: homing")
+            print("TMC2209",self.mtr_id,": ---")
+            print("TMC2209",self.mtr_id,": homing")
         
         if(self._loglevel >= Loglevel.debug):
-            print("TMC2209: Stallguard threshold:",self._sg_threshold)
+            print("TMC2209",self.mtr_id,": Stallguard threshold:",self._sg_threshold)
         
         self.setDirection_pin(direction)
         self.setSpreadCycle(0)
@@ -335,7 +338,7 @@ class TMC_2209:
         self.setMaxSpeed(self._maxSpeedHoming)
         self.computeNewSpeed()
         step_counter=0
-        #print("TMC2209: Steps per Revolution: "+str(self._stepsPerRevolution))
+        #print("TMC2209",self.mtr_id,": Steps per Revolution: "+str(self._stepsPerRevolution))
         while (step_counter<self._stepsPerRevolution):
             if (self.runSpeed()): #returns true, when a step is made
                 step_counter += 1
@@ -349,21 +352,21 @@ class TMC_2209:
 
         if(step_counter<self._stepsPerRevolution):
             if(self._loglevel >= Loglevel.info):
-                print("TMC2209: homing successful")
-                print("TMC2209: Stepcounter: "+str(step_counter))
+                print("TMC2209",self.mtr_id,": homing successful")
+                print("TMC2209",self.mtr_id,": Stepcounter: "+str(step_counter))
             if(self._loglevel >= Loglevel.debug):
-                print("TMC2209: Stepcounter: "+str(step_counter))
+                print("TMC2209",self.mtr_id,": Stepcounter: "+str(step_counter))
                 print(sg_results)
             self._currentPos = 0
         else:
             if(self._loglevel >= Loglevel.error):
-                print("TMC2209: homing failed")
+                print("TMC2209",self.mtr_id,": homing failed")
             if(self._loglevel >= Loglevel.debug):
-                print("TMC2209: Stepcounter: "+str(step_counter))
+                print("TMC2209",self.mtr_id,": Stepcounter: "+str(step_counter))
                 print(sg_results)
         
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209: ---")
+            print("TMC2209",self.mtr_id,": ---")
         
 #-----------------------------------------------------------------------
 # returns the current motor position in microsteps
@@ -411,11 +414,11 @@ class TMC_2209:
         gconf = self.tmc_uart.read_int(reg.GCONF)
         if(direction):
             if(self._loglevel >= Loglevel.info):
-                print("TMC2209: write inverse motor direction")
+                print("TMC2209",self.mtr_id,": write inverse motor direction")
             gconf = self.tmc_uart.set_bit(gconf, reg.shaft)
         else:
             if(self._loglevel >= Loglevel.info):
-                print("TMC2209: write normal motor direction")
+                print("TMC2209",self.mtr_id,": write normal motor direction")
             gconf = self.tmc_uart.clear_bit(gconf, reg.shaft)
         self.tmc_uart.write_reg_check(reg.GCONF, gconf)
   
@@ -433,11 +436,11 @@ class TMC_2209:
         gconf = self.tmc_uart.read_int(reg.GCONF)
         if(en):
             if(self._loglevel >= Loglevel.info):
-                print("TMC2209: activated Vref for current scale")
+                print("TMC2209",self.mtr_id,": activated Vref for current scale")
             gconf = self.tmc_uart.set_bit(gconf, reg.i_scale_analog)
         else:
             if(self._loglevel >= Loglevel.info):
-                print("TMC2209: activated 5V-out for current scale")
+                print("TMC2209",self.mtr_id,": activated 5V-out for current scale")
             gconf = self.tmc_uart.clear_bit(gconf, reg.i_scale_analog)
         self.tmc_uart.write_reg_check(reg.GCONF, gconf)
 
@@ -459,11 +462,11 @@ class TMC_2209:
         chopconf = self.tmc_uart.read_int(reg.CHOPCONF)
         if(en):
             if(self._loglevel >= Loglevel.info):
-                print("TMC2209: activated High sensitivity, low sense resistor voltage")
+                print("TMC2209",self.mtr_id,": activated High sensitivity, low sense resistor voltage")
             chopconf = self.tmc_uart.set_bit(chopconf, reg.vsense)
         else:
             if(self._loglevel >= Loglevel.info):
-                print("TMC2209: activated Low sensitivity, high sense resistor voltage")
+                print("TMC2209",self.mtr_id,": activated Low sensitivity, high sense resistor voltage")
             chopconf = self.tmc_uart.clear_bit(chopconf, reg.vsense)
         self.tmc_uart.write_reg_check(reg.CHOPCONF, chopconf)
 
@@ -485,11 +488,11 @@ class TMC_2209:
         gconf = self.tmc_uart.read_int(reg.GCONF)
         if(en):
             if(self._loglevel >= Loglevel.info):
-                print("TMC2209: activated internal sense resistors.")
+                print("TMC2209",self.mtr_id,": activated internal sense resistors.")
             gconf = self.tmc_uart.set_bit(gconf, reg.internal_rsense)
         else:
             if(self._loglevel >= Loglevel.info):
-                print("TMC2209: activated operation with external sense resistors")
+                print("TMC2209",self.mtr_id,": activated operation with external sense resistors")
             gconf = self.tmc_uart.clear_bit(gconf, reg.internal_rsense)
         self.tmc_uart.write_reg_check(reg.GCONF, gconf)
 
@@ -505,9 +508,9 @@ class TMC_2209:
         ihold_irun = ihold_irun | IRun << 8
         ihold_irun = ihold_irun | IHoldDelay << 16
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209: ihold_irun: ", bin(ihold_irun))
+            print("TMC2209",self.mtr_id,": ihold_irun: ", bin(ihold_irun))
             #print(bin(ihold_irun))
-            print("TMC2209: writing ihold_irun")
+            print("TMC2209",self.mtr_id,": writing ihold_irun")
         self.tmc_uart.write_reg_check(reg.IHOLD_IRUN, ihold_irun)
         
 #-----------------------------------------------------------------------
@@ -522,11 +525,11 @@ class TMC_2209:
 
         if(self.getVSense()):
             if(self._loglevel >= Loglevel.info):
-                print("TMC2209: Vsense: 1")
+                print("TMC2209",self.mtr_id,": Vsense: 1")
             Vfs = 0.180 * Vref / 2.5
         else:
             if(self._loglevel >= Loglevel.info):
-                print("TMC2209: Vsense: 0")
+                print("TMC2209",self.mtr_id,": Vsense: 0")
             Vfs = 0.325 * Vref / 2.5
             
         CS_IRun = 32.0*1.41421*run_current/1000.0*(Rsense+0.02)/Vfs - 1
@@ -541,9 +544,9 @@ class TMC_2209:
         hold_current_delay = round(hold_current_delay)
 
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209: CS_IRun: " + str(CS_IRun))
-            print("TMC2209: CS_IHold: " + str(CS_IHold))
-            print("TMC2209: Delay: " + str(hold_current_delay))
+            print("TMC2209",self.mtr_id,": CS_IRun: " + str(CS_IRun))
+            print("TMC2209",self.mtr_id,": CS_IHold: " + str(CS_IHold))
+            print("TMC2209",self.mtr_id,": Delay: " + str(hold_current_delay))
 
         self.setIRun_Ihold(CS_IHold, CS_IRun, hold_current_delay)
 
@@ -561,11 +564,11 @@ class TMC_2209:
         gconf = self.tmc_uart.read_int(reg.GCONF)
         if(en_spread):
             if(self._loglevel >= Loglevel.info):
-                print("TMC2209: activated Spreadcycle")
+                print("TMC2209",self.mtr_id,": activated Spreadcycle")
             gconf = self.tmc_uart.set_bit(gconf, reg.en_spreadcycle)
         else:
             if(self._loglevel >= Loglevel.info):
-                print("TMC2209: activated Stealthchop")
+                print("TMC2209",self.mtr_id,": activated Stealthchop")
             gconf = self.tmc_uart.clear_bit(gconf, reg.en_spreadcycle)
         self.tmc_uart.write_reg_check(reg.GCONF, gconf)
 
@@ -591,7 +594,7 @@ class TMC_2209:
             chopconf = self.tmc_uart.clear_bit(chopconf, reg.intpol)
 
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209: writing microstep interpolation setting: "+str(en))
+            print("TMC2209",self.mtr_id,": writing microstep interpolation setting: "+str(en))
         self.tmc_uart.write_reg_check(reg.CHOPCONF, chopconf)
 
 #-----------------------------------------------------------------------
@@ -617,7 +620,7 @@ class TMC_2209:
         chopconf = chopconf | msresdezimal <<24
         
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209: writing "+str(msres)+" microstep setting")
+            print("TMC2209",self.mtr_id,": writing "+str(msres)+" microstep setting")
         self.tmc_uart.write_reg_check(reg.CHOPCONF, chopconf)
         self.setMStepResolutionRegSelect(True)
         self.readStepsPerRevolution()
@@ -637,7 +640,7 @@ class TMC_2209:
             gconf = self.tmc_uart.clear_bit(gconf, reg.mstep_reg_select)
 
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209: writing MStep Reg Select: "+str(en))
+            print("TMC2209",self.mtr_id,": writing MStep Reg Select: "+str(en))
         self.tmc_uart.write_reg_check(reg.GCONF, gconf)
 
 #-----------------------------------------------------------------------
@@ -661,7 +664,7 @@ class TMC_2209:
     def getInterfaceTransmissionCounter(self):
         ifcnt = self.tmc_uart.read_int(reg.IFCNT)
         if(self._loglevel >= Loglevel.debug):
-            print("TMC2209: Interface Transmission Counter: "+str(ifcnt))
+            print("TMC2209",self.mtr_id,": Interface Transmission Counter: "+str(ifcnt))
         return ifcnt
 
 #-----------------------------------------------------------------------
@@ -691,10 +694,10 @@ class TMC_2209:
     def setStallguard_Threshold(self, threshold):
 
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209: sgthrs")
+            print("TMC2209",self.mtr_id,": sgthrs")
             print(bin(threshold))
 
-            print("TMC2209: writing sgthrs")
+            print("TMC2209",self.mtr_id,": writing sgthrs")
         self.tmc_uart.write_reg_check(reg.SGTHRS, threshold)
 
 #-----------------------------------------------------------------------
@@ -704,10 +707,10 @@ class TMC_2209:
     def setCoolStep_Threshold(self, threshold):
 
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209: tcoolthrs")
+            print("TMC2209",self.mtr_id,": tcoolthrs")
             print(bin(threshold))
 
-            print("TMC2209: writing tcoolthrs")
+            print("TMC2209",self.mtr_id,": writing tcoolthrs")
         self.tmc_uart.write_reg_check(reg.TCOOLTHRS, threshold)
 
 #-----------------------------------------------------------------------
@@ -721,7 +724,7 @@ class TMC_2209:
         self.setCoolStep_Threshold(min_speed)
 
         if(self._loglevel >= Loglevel.info):
-            print("TMC2209: setup stallguard callback")
+            print("TMC2209",self.mtr_id,": setup stallguard callback")
         
         #GPIO.setup(pin_stallguard, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)    
         #GPIO.add_event_detect(pin_stallguard, GPIO.RISING, callback=my_callback, bouncetime=300) 
@@ -860,15 +863,15 @@ class TMC_2209:
         distanceTo = self.distanceToGo() # +ve is clockwise from curent location     
         stepsToStop = (self._speed * self._speed) / (2.0 * self._acceleration) # Equation 16
         if(self._loglevel >= Loglevel.movement):
-            print("TMC2209: distanceTo", distanceTo)
-            #print("TMC2209: stepsToStop", stepsToStop)       
+            print("TMC2209",self.mtr_id,": distanceTo", distanceTo)
+            #print("TMC2209",self.mtr_id,": stepsToStop", stepsToStop)       
         if (distanceTo == 0 and stepsToStop <= 1):
             # We are at the target and its time to stop
             self._stepInterval = 0
             self._speed = 0.0
             self._n = 0
             if(self._loglevel >= Loglevel.movement):
-                print("TMC2209: time to stop")
+                print("TMC2209",self.mtr_id,": time to stop")
             return
         
         if (distanceTo > 0):
@@ -898,15 +901,15 @@ class TMC_2209:
             # First step from stopped
             self._cn = self._c0
             self.p_pin_step.off()
-            #print("TMC2209: distance to: " + str(distanceTo))
+            #print("TMC2209",self.mtr_id,": distance to: " + str(distanceTo))
             if(distanceTo > 0):
                 self.setDirection_pin(1)
                 if(self._loglevel >= Loglevel.movement):
-                    print("TMC2209: going CW")
+                    print("TMC2209",self.mtr_id,": going CW")
             else:
                 self.setDirection_pin(0)
                 if(self._loglevel >= Loglevel.movement):
-                    print("TMC2209: going CCW")
+                    print("TMC2209",self.mtr_id,": going CCW")
         else:
             # Subsequent step. Works for accel (n is +_ve) and decel (n is -ve).
             self._cn = self._cn - ((2.0 * self._cn) / ((4.0 * self._n) + 1)) # Equation 13
@@ -926,9 +929,9 @@ class TMC_2209:
             return False
         
         curtime = time.ticks_us()
-        #print("TMC2209: current time: " + str(curtime))
-        #print("TMC2209: last st time: " + str(self._lastStepTime))
-        #print("TMC2209: _stepInterval: " + str(self._stepInterval))
+        #print("TMC2209",self.mtr_id,": current time: " + str(curtime))
+        #print("TMC2209",self.mtr_id,": last st time: " + str(self._lastStepTime))
+        #print("TMC2209",self.mtr_id,": _stepInterval: " + str(self._stepInterval))
         
         if (curtime - self._lastStepTime >= self._stepInterval):
             if not self._stop:
@@ -954,7 +957,7 @@ class TMC_2209:
         time.sleep(1/1000/1000)
 
         if(self._loglevel >= Loglevel.movement):
-                print("TMC2209: one step")
+                print("TMC2209",self.mtr_id,": one step")
 
 #-----------------------------------------------------------------------
 # tests the EN, DIR and STEP pin
